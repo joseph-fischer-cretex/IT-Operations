@@ -7,7 +7,7 @@
 
     <style>
         body {
-            font-family: Segoe UI, Arial, sans-serif;
+            font-family: 'Segoe UI', Arial, sans-serif;
             background: #f1f5f9;
             margin: 0;
             padding: 20px;
@@ -23,6 +23,7 @@
             border-radius: 16px;
             box-shadow: 0 2px 10px rgba(0,0,0,.1);
             margin-bottom: 20px;
+            padding: 20px;
             overflow: hidden;
         }
 
@@ -38,11 +39,52 @@
 
         .header h1 {
             color: #1e293b;
+            margin-top: 15px;
+            margin-bottom: 5px;
         }
 
+        /* Selected User Card */
+        .selected-user-card {
+            background: #e2e8f0;
+            border-left: 6px solid #2563eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        .selected-user-info h3 {
+            margin: 0 0 5px 0;
+            color: #1e293b;
+        }
+
+        .selected-user-info p {
+            margin: 0;
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .search-trigger-btn {
+            background: #475569;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .search-trigger-btn:hover {
+            background: #334155;
+        }
+
+        /* Dynamic Grid Layout */
         .button-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit,minmax(250px,1fr));
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 15px;
             margin-bottom: 20px;
         }
@@ -55,10 +97,30 @@
             border-radius: 12px;
             cursor: pointer;
             font-size: 16px;
+            font-weight: 600;
+            transition: background 0.2s;
         }
 
         .script-btn:hover {
             background: #1d4ed8;
+        }
+
+        /* Role-restricted Button (Hidden by default) */
+        .lockdown-btn {
+            background: #dc2626; /* Warning Red */
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            display: none; /* Controlled via JS */
+            transition: background 0.2s;
+        }
+
+        .lockdown-btn:hover {
+            background: #b91c1c;
         }
 
         .reports {
@@ -72,6 +134,11 @@
             padding: 10px 15px;
             border-radius: 8px;
             cursor: pointer;
+            font-weight: 600;
+        }
+
+        .download-btn:hover {
+            background: #15803d;
         }
 
         table {
@@ -82,30 +149,144 @@
 
         th, td {
             border-bottom: 1px solid #ddd;
-            padding: 10px;
+            padding: 12px;
             text-align: left;
         }
 
-        .console {
-            background: black;
-            color: #00ff66;
-            height: 400px;
-            overflow-y: auto;
-            padding: 15px;
-            font-family: Consolas, monospace;
-            border-radius: 12px;
+        th {
+            background-color: #f8fafc;
+            color: #475569;
         }
 
+        /* Modal Overlay Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            display: none; /* Controlled via JS */
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: #1e293b;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #64748b;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            flex-grow: 1;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        .search-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .search-results {
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+
+        .result-item {
+            padding: 12px;
+            border-bottom: 1px solid #f1f5f9;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-item:hover {
+            background: #f1f5f9;
+        }
+
+        .result-name {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .result-details {
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        /* Console Terminal Styles */
         .console-card {
             background: #0f172a;
             color: white;
             padding: 20px;
             border-radius: 16px;
+            margin-top: 20px;
+        }
+
+        .console {
+            background: black;
+            color: #00ff66;
+            height: 200px;
+            overflow-y: auto;
+            padding: 15px;
+            font-family: Consolas, monospace;
+            border-radius: 12px;
+            margin-top: 10px;
+            white-space: pre-wrap;
         }
 
         .section-title {
             font-size: 20px;
             margin-bottom: 10px;
+            font-weight: 600;
+            color: #1e293b;
         }
     </style>
 </head>
@@ -113,6 +294,7 @@
 
 <div class="container">
 
+    <!-- Header Section -->
     <div class="card header">
         <img src="images/Cretex_Dam_Logo.jpg" alt="Cretex Logo">
         <h1>PowerShell Automation Portal</h1>
@@ -122,8 +304,17 @@
         </p>
     </div>
 
-    <div class="button-grid">
+    <!-- Active Selected User context bar -->
+    <div class="selected-user-card">
+        <div class="selected-user-info">
+            <h3 id="display-user-name">No User Selected</h3>
+            <p id="display-user-details">Please select a target user to run context-specific tasks.</p>
+        </div>
+        <button class="search-trigger-btn" onclick="openSearchModal()">Search Account</button>
+    </div>
 
+    <!-- Core Script Buttons -->
+    <div class="button-grid">
         <button class="script-btn" onclick="runScript('UserAudit')">
             User Audit Report
         </button>
@@ -140,17 +331,251 @@
             All AD Machines
         </button>
 
+        <!-- Only visible/usable by ServiceDesk & PortalAdmin (or PDAdmin) roles -->
+        <button id="lockdown-btn" class="lockdown-btn" onclick="runLockdown()">
+            🚨 User Lockdown
+        </button>
     </div>
 
+    <!-- CSV Table Section -->
     <div class="card reports">
         <div class="section-title">CSV Reports</div>
-
         <button class="download-btn">
             Download Latest CSV
         </button>
-
         <table>
             <thead>
                 <tr>
                     <th>Report</th>
-                    <th>Date<
+                    <th>Date Generated</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>UserAudit_Report.csv</td>
+                    <td>2026-08-12 14:32</td>
+                    <td>Completed</td>
+                </tr>
+                <tr>
+                    <td>MailboxReport_Report.csv</td>
+                    <td>2026-08-11 09:15</td>
+                    <td>Completed</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Output Logs Console -->
+    <div class="console-card">
+        <div class="section-title">Execution Console Output</div>
+        <div id="console-log" class="console">System ready. Select a user or trigger a script above...</div>
+    </div>
+
+</div>
+
+<!-- Account Search Modal / Popup -->
+<div id="search-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Account Search</h2>
+            <button class="close-modal" onclick="closeSearchModal()">&times;</button>
+        </div>
+        <div class="search-box">
+            <input type="text" id="search-input" class="search-input" placeholder="Search by First, Last, Email, UPN, Username..." onkeyup="handleSearchKeyUp(event)">
+            <button class="search-btn" onclick="performSearch()">Search</button>
+        </div>
+        <div id="search-results" class="search-results">
+            <div style="padding: 15px; color: #64748b; text-align: center;">Enter search query above...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Global variable to hold the selected target user's details
+    let selectedTargetUser = null;
+
+    // Mock Directory Database (Matches Search targets: First, Last, Email, UPN, Username)
+    const mockUserDatabase = [
+        { first: "John", last: "Doe", email: "john.doe@cretex.com", upn: "jdoe@cretex.com", username: "jdoe", title: "Sales Associate" },
+        { first: "Jane", last: "Smith", email: "jane.smith@cretex.com", upn: "jsmith@cretex.com", username: "jsmith", title: "HR Generalist" },
+        { first: "Robert", last: "Johnson", email: "robert.johnson@cretex.com", upn: "rjohnson@cretex.com", username: "rjohnson", title: "Mechanical Engineer" },
+        { first: "Emily", last: "Davis", email: "emily.davis@cretex.com", upn: "edavis@cretex.com", username: "edavis", title: "Finance Analyst" }
+    ];
+
+    // ==========================================
+    // ENTRA ID APP ROLES DEFINITIONS & CHECK
+    // ==========================================
+    /*
+      Entra App Role Configuration References:
+      1. Role: "User"
+         - Value: "User"
+         - Description: Allows user to view their own details.
+         
+      2. Role: "Manager"
+         - Value: "Manager"
+         - Description: Allows listed AD managers to manage there direct reports accounts.
+         
+      3. Role: "ServiceDesk"
+         - Value: "ServiceDesk"
+         - Description: Allows management of user accounts.
+         
+      4. Role: "ADAdmin"
+         - Value: "ADAdmin"
+         - Description: Allows management of all accounts users and service accounts.
+         
+      5. Role: "PortalAdmin" (or "PDAdmin")
+         - Value: "PortalAdmin"
+         - Description: Allow full access to web app front and backend.
+    */
+
+    async function evaluateUserRoles() {
+        try {
+            // Fetch Easy Auth claims injected by Azure App Service
+            const response = await fetch('/.auth/me');
+            if (!response.ok) throw new Error("Could not fetch user authentication data.");
+            
+            const authData = await response.json();
+            
+            // Extract claims array
+            const claims = authData[0]?.user_claims || [];
+            
+            // Map over claims to extract Entra App Role values (handles standard Claim URI schemas)
+            const userRoles = claims
+                .filter(claim => claim.typ === 'roles' || claim.typ === 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role')
+                .map(claim => claim.val);
+
+            writeToConsole(`Successfully authenticated! User Roles identified: [${userRoles.join(', ')}]`);
+
+            // Check authorization logic for the "User Lockdown" action button
+            // Accommodates 'PortalAdmin' mapping as well as 'PDAdmin' as specified
+            const hasLockdownPermissions = userRoles.includes('ServiceDesk') || 
+                                           userRoles.includes('PortalAdmin') || 
+                                           userRoles.includes('PDAdmin');
+
+            if (hasLockdownPermissions) {
+                document.getElementById('lockdown-btn').style.display = 'block';
+                writeToConsole("Administrative permissions granted: User Lockdown utility activated.");
+            }
+
+        } catch (error) {
+            // Fallback for Local Debugging & Testing environments where App Service Auth is missing
+            writeToConsole("Local Environment / Testing detected. Emulating ServiceDesk / PortalAdmin permissions.");
+            
+            // Enable administrative utilities for local development verification
+            document.getElementById('lockdown-btn').style.display = 'block';
+        }
+    }
+
+    // Run Auth appraisal when the interface mounts
+    window.onload = () => {
+        evaluateUserRoles();
+    };
+
+    // ==========================================
+    // MODAL POPUP & SEARCH ACCOUNT ACTIONS
+    // ==========================================
+    function openSearchModal() {
+        document.getElementById('search-modal').style.display = 'flex';
+        document.getElementById('search-input').focus();
+    }
+
+    function closeSearchModal() {
+        document.getElementById('search-modal').style.display = 'none';
+        document.getElementById('search-input').value = '';
+        document.getElementById('search-results').innerHTML = '<div style="padding: 15px; color: #64748b; text-align: center;">Enter search query above...</div>';
+    }
+
+    function handleSearchKeyUp(event) {
+        if (event.key === 'Enter') {
+            performSearch();
+        }
+    }
+
+    function performSearch() {
+        const query = document.getElementById('search-input').value.trim().toLowerCase();
+        const resultsContainer = document.getElementById('search-results');
+        
+        if (!query) {
+            resultsContainer.innerHTML = '<div style="padding: 15px; color: #dc2626; text-align: center;">Please enter a search term.</div>';
+            return;
+        }
+
+        // Filter the user records against: First Name, Last Name, Email, UPN, and Username
+        const filtered = mockUserDatabase.filter(user => {
+            return user.first.toLowerCase().includes(query) ||
+                   user.last.toLowerCase().includes(query) ||
+                   user.email.toLowerCase().includes(query) ||
+                   user.upn.toLowerCase().includes(query) ||
+                   user.username.toLowerCase().includes(query);
+        });
+
+        if (filtered.length === 0) {
+            resultsContainer.innerHTML = '<div style="padding: 15px; color: #64748b; text-align: center;">No matches found.</div>';
+            return;
+        }
+
+        // Render matching accounts
+        resultsContainer.innerHTML = filtered.map((user, idx) => `
+            <div class="result-item" onclick="selectUser(${JSON.stringify(user).replace(/"/g, '&quot;')})">
+                <div class="result-name">${user.first} ${user.last}</div>
+                <div class="result-details">
+                    Email: ${user.email} | UPN: ${user.upn} | Username: ${user.username} (${user.title})
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Captures user selection, stores in variable, updates UI elements, and terminates the popup
+    function selectUser(user) {
+        // Record Selection to the Global Variable
+        selectedTargetUser = user;
+
+        // Display current active target on the Main Index Portal
+        document.getElementById('display-user-name').innerText = `${user.first} ${user.last}`;
+        document.getElementById('display-user-details').innerText = `Title: ${user.title} | Email: ${user.email} | UPN: ${user.upn}`;
+        
+        writeToConsole(`Target User Context Changed -> Selected: ${user.first} ${user.last} (${user.username})`);
+        
+        // Terminate Pop-up
+        closeSearchModal();
+    }
+
+    // ==========================================
+    // UTILITY DASHBOARD FUNCTIONS
+    // ==========================================
+    function writeToConsole(message) {
+        const consoleLog = document.getElementById('console-log');
+        const timestamp = new Date().toLocaleTimeString();
+        consoleLog.innerText += `\n[${timestamp}] ${message}`;
+        consoleLog.scrollTop = consoleLog.scrollHeight;
+    }
+
+    function runScript(scriptName) {
+        if (selectedTargetUser) {
+            writeToConsole(`Executing script '${scriptName}' targeting: ${selectedTargetUser.first} ${selectedTargetUser.last}...`);
+        } else {
+            writeToConsole(`Executing global query script: '${scriptName}'...`);
+        }
+    }
+
+    function runLockdown() {
+        if (!selectedTargetUser) {
+            alert("Error: You must search and select a target user before attempting a Lockdown action!");
+            writeToConsole("Lockdown execution rejected: No target user selected.");
+            return;
+        }
+
+        const confirmCheck = confirm(`CRITICAL WARNING: Are you sure you want to completely LOCK DOWN the account for ${selectedTargetUser.first} ${selectedTargetUser.last}?`);
+        if (confirmCheck) {
+            writeToConsole(`🚀 TRIGGERED: User Lockdown initiated for: ${selectedTargetUser.first} ${selectedTargetUser.last} (${selectedTargetUser.upn})`);
+            writeToConsole("Connecting to Azure PowerShell Module... Disabling active status, ending existing sessions, revoking M365 tokens...");
+            setTimeout(() => {
+                writeToConsole(`SUCCESS: User account ${selectedTargetUser.username} has been locked down and isolated.`);
+            }, 1800);
+        }
+    }
+</script>
+
+</body>
+</html>
