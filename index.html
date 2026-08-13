@@ -382,7 +382,7 @@
             <button class="close-modal" onclick="closeSearchModal()">&times;</button>
         </div>
         <div class="search-box">
-            <input type="text" id="search-input" class="search-input" placeholder="Search by First, Last, Email, UPN, Username..." onkeyup="handleSearchKeyUp(event)">
+            <input type="text" id="search-input" class="search-input" placeholder="Search by Name, Email, UPN, or Username..." onkeyup="handleSearchKeyUp(event)">
             <button class="search-btn" onclick="performSearch()">Search</button>
         </div>
         <div id="search-results" class="search-results">
@@ -395,60 +395,26 @@
     // Global variable to hold the selected target user's details
     let selectedTargetUser = null;
 
-    // Mock Directory Database (Matches Search targets: First, Last, Email, UPN, Username)
-    const mockUserDatabase = [
-        { first: "John", last: "Doe", email: "john.doe@cretex.com", upn: "jdoe@cretex.com", username: "jdoe", title: "Sales Associate" },
-        { first: "Jane", last: "Smith", email: "jane.smith@cretex.com", upn: "jsmith@cretex.com", username: "jsmith", title: "HR Generalist" },
-        { first: "Robert", last: "Johnson", email: "robert.johnson@cretex.com", upn: "rjohnson@cretex.com", username: "rjohnson", title: "Mechanical Engineer" },
-        { first: "Emily", last: "Davis", email: "emily.davis@cretex.com", upn: "edavis@cretex.com", username: "edavis", title: "Finance Analyst" }
-    ];
-
-    // ==========================================
-    // ENTRA ID APP ROLES DEFINITIONS & CHECK
-    // ==========================================
-    /*
-      Entra App Role Configuration References:
-      1. Role: "User"
-         - Value: "User"
-         - Description: Allows user to view their own details.
-         
-      2. Role: "Manager"
-         - Value: "Manager"
-         - Description: Allows listed AD managers to manage there direct reports accounts.
-         
-      3. Role: "ServiceDesk"
-         - Value: "ServiceDesk"
-         - Description: Allows management of user accounts.
-         
-      4. Role: "ADAdmin"
-         - Value: "ADAdmin"
-         - Description: Allows management of all accounts users and service accounts.
-         
-      5. Role: "PortalAdmin" (or "PDAdmin")
-         - Value: "PortalAdmin"
-         - Description: Allow full access to web app front and backend.
-    */
-
+    // ==========================================================
+    // EASY AUTH (/.auth/me) APP ROLES CHECK (Same as Option A)
+    // ==========================================================
     async function evaluateUserRoles() {
         try {
-            // Fetch Easy Auth claims injected by Azure App Service
+            // Fetch Entra authentication claims injected by App Service
             const response = await fetch('/.auth/me');
             if (!response.ok) throw new Error("Could not fetch user authentication data.");
             
             const authData = await response.json();
-            
-            // Extract claims array
             const claims = authData[0]?.user_claims || [];
             
-            // Map over claims to extract Entra App Role values (handles standard Claim URI schemas)
+            // Extract role strings
             const userRoles = claims
                 .filter(claim => claim.typ === 'roles' || claim.typ === 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role')
                 .map(claim => claim.val);
 
-            writeToConsole(`Successfully authenticated! User Roles identified: [${userRoles.join(', ')}]`);
+            writeToConsole(`Successfully authenticated! User Roles: [${userRoles.join(', ')}]`);
 
-            // Check authorization logic for the "User Lockdown" action button
-            // Accommodates 'PortalAdmin' mapping as well as 'PDAdmin' as specified
+            // Verify if user roles permit execution of administrative actions
             const hasLockdownPermissions = userRoles.includes('ServiceDesk') || 
                                            userRoles.includes('PortalAdmin') || 
                                            userRoles.includes('PDAdmin');
@@ -459,22 +425,20 @@
             }
 
         } catch (error) {
-            // Fallback for Local Debugging & Testing environments where App Service Auth is missing
-            writeToConsole("Local Environment / Testing detected. Emulating ServiceDesk / PortalAdmin permissions.");
-            
-            // Enable administrative utilities for local development verification
+            // Fallback for local debugging/development environment
+            writeToConsole("Local Environment / Testing detected. Emulating administrative rights (ServiceDesk/PortalAdmin).");
             document.getElementById('lockdown-btn').style.display = 'block';
         }
     }
 
-    // Run Auth appraisal when the interface mounts
+    // App Init
     window.onload = () => {
         evaluateUserRoles();
     };
 
-    // ==========================================
-    // MODAL POPUP & SEARCH ACCOUNT ACTIONS
-    // ==========================================
+    // ==========================================================
+    // MODAL POPUP & SECURE GRAPH API ACCOUNT SEARCH (NEW/SECURE)
+    // ==========================================================
     function openSearchModal() {
         document.getElementById('search-modal').style.display = 'flex';
         document.getElementById('search-input').focus();
@@ -492,8 +456,9 @@
         }
     }
 
-    function performSearch() {
-        const query = document.getElementById('search-input').value.trim().toLowerCase();
+    // Query backend endpoint which securely wraps Client Secret access to Microsoft Graph
+    async function performSearch() {
+        const query = document.getElementById('search-input').value.trim();
         const resultsContainer = document.getElementById('search-results');
         
         if (!query) {
@@ -501,48 +466,53 @@
             return;
         }
 
-        // Filter the user records against: First Name, Last Name, Email, UPN, and Username
-        const filtered = mockUserDatabase.filter(user => {
-            return user.first.toLowerCase().includes(query) ||
-                   user.last.toLowerCase().includes(query) ||
-                   user.email.toLowerCase().includes(query) ||
-                   user.upn.toLowerCase().includes(query) ||
-                   user.username.toLowerCase().includes(query);
-        });
+        resultsContainer.innerHTML = '<div style="padding: 15px; color: #2563eb; text-align: center;">Searching Microsoft Entra ID...</div>';
 
-        if (filtered.length === 0) {
-            resultsContainer.innerHTML = '<div style="padding: 15px; color: #64748b; text-align: center;">No matches found.</div>';
-            return;
-        }
+        try {
+            // Secure API call to our application backend (e.g. Node, Python, or PowerShell API runner)
+            const response = await fetch(`/api/searchUsers?q=${encodeURIComponent(query)}`);
+            if (!response.ok) throw new Error("Backend query failed.");
 
-        // Render matching accounts
-        resultsContainer.innerHTML = filtered.map((user, idx) => `
-            <div class="result-item" onclick="selectUser(${JSON.stringify(user).replace(/"/g, '&quot;')})">
-                <div class="result-name">${user.first} ${user.last}</div>
-                <div class="result-details">
-                    Email: ${user.email} | UPN: ${user.upn} | Username: ${user.username} (${user.title})
+            const filteredUsers = await response.json();
+
+            if (filteredUsers.length === 0) {
+                resultsContainer.innerHTML = '<div style="padding: 15px; color: #64748b; text-align: center;">No matches found in Microsoft Entra ID.</div>';
+                return;
+            }
+
+            // Render matching accounts queried in real-time from Entra ID
+            resultsContainer.innerHTML = filteredUsers.map(user => `
+                <div class="result-item" onclick="selectUser(${JSON.stringify(user).replace(/"/g, '&quot;')})">
+                    <div class="result-name">${user.first} ${user.last}</div>
+                    <div class="result-details">
+                        Email: ${user.email} | UPN: ${user.upn} | Username: ${user.username} (${user.title})
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `).join('');
+
+        } catch (error) {
+            console.error("Search error details:", error);
+            resultsContainer.innerHTML = '<div style="padding: 15px; color: #dc2626; text-align: center;">Failed to retrieve Entra ID accounts. Check web application logs.</div>';
+        }
     }
 
-    // Captures user selection, stores in variable, updates UI elements, and terminates the popup
+    // Captures the chosen target user's context object, updates UI card, closes modal
     function selectUser(user) {
         // Record Selection to the Global Variable
         selectedTargetUser = user;
 
-        // Display current active target on the Main Index Portal
+        // Display current active target on the Main Portal UI
         document.getElementById('display-user-name').innerText = `${user.first} ${user.last}`;
         document.getElementById('display-user-details').innerText = `Title: ${user.title} | Email: ${user.email} | UPN: ${user.upn}`;
         
         writeToConsole(`Target User Context Changed -> Selected: ${user.first} ${user.last} (${user.username})`);
         
-        // Terminate Pop-up
+        // Close Pop-up
         closeSearchModal();
     }
 
     // ==========================================
-    // UTILITY DASHBOARD FUNCTIONS
+    // UTILITY DASHBOARD CONSOLE OUTPUTS
     // ==========================================
     function writeToConsole(message) {
         const consoleLog = document.getElementById('console-log');
