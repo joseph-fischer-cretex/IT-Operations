@@ -64,17 +64,11 @@ app.get('/api/searchUsers', async (req, res) => {
     }
 });
 
-// IISNode injects a Named Pipe path into process.env.PORT instead of a number.
-// We must detect this and pass it directly to app.listen() without parsing it.
-var port = process.env.PORT;
-if (port && port.indexOf('pipe') !== -1) {
-    // Running under IISNode in Azure App Service
-    app.listen(port, function() {
-        console.log('Backend server running on IISNode pipe: ' + port);
-    });
-} else {
-    // Running locally or in Kudu console — bind to 127.0.0.1 to avoid IPv6 sandbox crash
-    app.listen(3000, '127.0.0.1', function() {
-        console.log('Backend server running on http://127.0.0.1:3000');
-    });
-}
+// httpPlatformHandler passes a clean numeric port via HTTP_PLATFORM_PORT
+// which we forward as PORT in web.config environmentVariables
+const port = process.env.PORT || 3000;
+const host = process.env.PORT ? '0.0.0.0' : '127.0.0.1';
+
+app.listen(port, host, function() {
+    console.log('Server running on ' + host + ':' + port);
+});
