@@ -55,6 +55,36 @@
             border-radius: 8px;
         }
 
+        .selected-user-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .selected-user-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #94a3b8;
+            flex-shrink: 0;
+            display: none; /* shown once an image loads, or replaced with initials */
+        }
+
+        .selected-user-initials {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #475569;
+            color: white;
+            display: none; /* shown when no photo is available */
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
         .selected-user-info h3 {
             margin: 0 0 5px 0;
             color: #1e293b;
@@ -306,9 +336,13 @@
 
     <!-- Active Selected User context bar -->
     <div class="selected-user-card">
-        <div class="selected-user-info">
-            <h3 id="display-user-name">No User Selected</h3>
-            <p id="display-user-details">Please select a target user to run context-specific tasks.</p>
+        <div class="selected-user-left">
+            <img id="selected-user-avatar" class="selected-user-avatar" alt="">
+            <div id="selected-user-initials" class="selected-user-initials"></div>
+            <div class="selected-user-info">
+                <h3 id="display-user-name">No User Selected</h3>
+                <p id="display-user-details">Please select a target user to run context-specific tasks.</p>
+            </div>
         </div>
         <button class="search-trigger-btn" onclick="openSearchModal()">Search Account</button>
     </div>
@@ -504,11 +538,38 @@
         // Display current active target on the Main Portal UI
         document.getElementById('display-user-name').innerText = `${user.first} ${user.last}`;
         document.getElementById('display-user-details').innerText = `Title: ${user.title} | Email: ${user.email} | UPN: ${user.upn}`;
-        
+
+        loadSelectedUserAvatar(user);
+
         writeToConsole(`Target User Context Changed -> Selected: ${user.first} ${user.last} (${user.username})`);
         
         // Close Pop-up
         closeSearchModal();
+    }
+
+    // Loads the selected user's Entra ID profile photo; falls back to
+    // initials in a colored circle if the account has no photo set.
+    function loadSelectedUserAvatar(user) {
+        const avatarImg = document.getElementById('selected-user-avatar');
+        const initialsDiv = document.getElementById('selected-user-initials');
+
+        const initials = `${(user.first || '?').charAt(0)}${(user.last || '?').charAt(0)}`.toUpperCase();
+        initialsDiv.innerText = initials;
+
+        // Show initials immediately while the photo loads, avoids a blank gap
+        avatarImg.style.display = 'none';
+        initialsDiv.style.display = 'flex';
+
+        avatarImg.onload = () => {
+            avatarImg.style.display = 'block';
+            initialsDiv.style.display = 'none';
+        };
+        avatarImg.onerror = () => {
+            avatarImg.style.display = 'none';
+            initialsDiv.style.display = 'flex';
+        };
+
+        avatarImg.src = `/api/userPhoto?upn=${encodeURIComponent(user.upn)}`;
     }
 
     // ==========================================
