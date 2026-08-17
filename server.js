@@ -3,7 +3,7 @@ const axios = require('axios');
 const path = require('path');
 const app = express();
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
 
 const clientId = process.env.AzureAppID;
 const tenantId = process.env.AzureTenantID;
@@ -61,10 +61,22 @@ app.get('/api/searchUsers', async (req, res) => {
     }
 });
 
-// httpPlatformHandler passes a clean numeric port via HTTP_PLATFORM_PORT
+// Under iisnode, process.env.PORT is a named pipe path (e.g. \\.\pipe\xxxx),
+// not a numeric TCP port -- app.listen() must be called with just that path
+// (no host argument) in that case. Locally/elsewhere, PORT (if set) is a
+// real TCP port, so we bind to 0.0.0.0; with no PORT at all we fall back to
+// localhost:3000 for local development.
 const port = process.env.PORT || 3000;
-const host = process.env.PORT ? '0.0.0.0' : '127.0.0.1';
+const isNamedPipe = typeof port === 'string' && port.indexOf('\\\\.\\pipe\\') === 0;
 
-app.listen(port, host, function() {
-    console.log('Server running on ' + host + ':' + port);
-});
+function onListen() {
+    console.log('Server running on ' + port);
+}
+
+if (isNamedPipe) {
+    app.listen(port, onListen);
+} else if (process.env.PORT) {
+    app.listen(port, '0.0.0.0', onListen);
+} else {
+    app.listen(port, '127.0.0.1', onListen);
+}
