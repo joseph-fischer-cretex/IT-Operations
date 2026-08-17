@@ -7,7 +7,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const clientId = process.env.AzureAppID;
 const tenantId = process.env.AzureTenantID;
-const clientSecret = process.env.AzureClientSecret;
+const clientSecret = process.env.MICROSOFT_PROVIDER_AUTHENTICATION_SECRET;
 
 app.get('/api/searchUsers', async (req, res) => {
     const query = req.query.q;
