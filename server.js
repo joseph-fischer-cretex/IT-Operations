@@ -16,7 +16,6 @@ app.get('/api/searchUsers', async (req, res) => {
     }
 
     try {
-        // 1. Get Access Token from Entra ID via Client Credentials Flow
         const tokenResponse = await axios.post(
             'https://login.microsoftonline.com/' + tenantId + '/oauth2/v2.0/token',
             new URLSearchParams({
@@ -30,7 +29,6 @@ app.get('/api/searchUsers', async (req, res) => {
 
         const accessToken = tokenResponse.data.access_token;
 
-        // 2. Query Microsoft Graph API
         const graphResponse = await axios.get(
             'https://graph.microsoft.com/v1.0/users?' +
             '$search="displayName:' + query + '" OR "mail:' + query + '" OR "userPrincipalName:' + query + '"' +
@@ -44,7 +42,6 @@ app.get('/api/searchUsers', async (req, res) => {
             }
         );
 
-        // 3. Map Graph API response to frontend format
         const users = graphResponse.data.value.map(function(user) {
             return {
                 first: user.givenName || '',
@@ -65,7 +62,6 @@ app.get('/api/searchUsers', async (req, res) => {
 });
 
 // httpPlatformHandler passes a clean numeric port via HTTP_PLATFORM_PORT
-// which we forward as PORT in web.config environmentVariables
 const port = process.env.PORT || 3000;
 const host = process.env.PORT ? '0.0.0.0' : '127.0.0.1';
 
