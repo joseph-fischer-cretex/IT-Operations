@@ -371,6 +371,14 @@
         </button>
     </div>
 
+    <!-- Custom Scripts Section (dynamically populated from scripts/*.ps1) -->
+    <div class="card">
+        <div class="section-title">Custom Scripts</div>
+        <div id="custom-scripts-grid" class="button-grid">
+            <div style="color: #64748b; grid-column: 1 / -1;">Loading custom scripts...</div>
+        </div>
+    </div>
+
     <!-- CSV Table Section -->
     <div class="card reports">
         <div class="section-title">CSV Reports</div>
@@ -468,7 +476,77 @@
     // App Init
     window.onload = () => {
         evaluateUserRoles();
+        loadCustomScripts();
     };
+
+    // ==========================================================
+    // CUSTOM SCRIPTS (populated from scripts/*.ps1 on the backend)
+    // ==========================================================
+    async function loadCustomScripts() {
+        const grid = document.getElementById('custom-scripts-grid');
+        try {
+            const response = await fetch('/api/scripts');
+            if (!response.ok) throw new Error('Failed to load scripts.');
+            const scripts = await response.json();
+
+            if (scripts.length === 0) {
+                grid.innerHTML = '<div style="color: #64748b; grid-column: 1 / -1;">No custom scripts found. Drop a .ps1 file into the scripts folder to add one here.</div>';
+                return;
+            }
+
+            grid.innerHTML = scripts.map(script => `
+                <button class="script-btn" title="${script.description ? script.description.replace(/"/g, '&quot;') : ''}"
+                        onclick="runCustomScript('${script.id}', ${script.requiresUser})">
+                    ${script.name}
+                </button>
+            `).join('');
+
+        } catch (error) {
+            console.error('Error loading custom scripts:', error);
+            grid.innerHTML = '<div style="color: #dc2626; grid-column: 1 / -1;">Failed to load custom scripts.</div>';
+        }
+    }
+
+    async function runCustomScript(fileName, requiresUser) {
+        if (requiresUser && !selectedTargetUser) {
+            alert('This script requires a selected user. Please search and select a target user first.');
+            writeToConsole(`Script '${fileName}' rejected: no target user selected.`);
+            return;
+        }
+
+        writeToConsole(`Running custom script: ${fileName}...`);
+
+        try {
+            const response = await fetch('/api/scripts/run', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fileName,
+                    upn: requiresUser ? selectedTargetUser.upn : undefined
+                })
+            });
+
+            if (response.status === 403) {
+                writeToConsole(`Script '${fileName}' rejected: you do not have permission to run scripts.`);
+                return;
+            }
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                writeToConsole(`Script '${fileName}' failed to start: ${result.error || 'Unknown error'}`);
+                return;
+            }
+
+            if (result.output) writeToConsole(result.output.trim());
+            if (result.errorOutput) writeToConsole(`[stderr] ${result.errorOutput.trim()}`);
+            writeToConsole(`Script '${fileName}' finished with exit code ${result.exitCode}.`);
+
+        } catch (error) {
+            console.error('Error running script:', error);
+            writeToConsole(`Script '${fileName}' failed: ${error.message}`);
+        }
+    }
 
     // ==========================================================
     // MODAL POPUP & SECURE GRAPH API ACCOUNT SEARCH (NEW/SECURE)
